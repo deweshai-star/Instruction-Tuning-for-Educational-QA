@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+
+# Training outputs (large model weights)
+results-educational-tuning/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# HuggingFace cache
+.cache/
