@@ -22,3 +22,7 @@ Thumbs.db
 
 # HuggingFace cache
 .cache/
+
+# Office temporary files
+~$*
+

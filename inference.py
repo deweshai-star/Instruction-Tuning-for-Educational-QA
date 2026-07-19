@@ -1,14 +1,17 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
+import os
 
 def generate_response(instruction, input_text=""):
     # Base model and adapter paths
     base_model_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     adapter_path = "./results-educational-tuning/final-adapter"
-    
+    if not os.path.exists(adapter_path):
+        adapter_path = "./results-educational-tuning/checkpoint-25"
+        
     print(f"Loading base model: {base_model_id}...")
-    tokenizer = AutoTokenizer.from_pretrained(adapter_path)
+    tokenizer = AutoTokenizer.from_pretrained(adapter_path if os.path.exists(adapter_path) else base_model_id)
     
     # Load on CPU with float32
     model = AutoModelForCausalLM.from_pretrained(
@@ -17,13 +20,17 @@ def generate_response(instruction, input_text=""):
         device_map="cpu"
     )
     
-    print(f"Loading fine-tuned adapters from {adapter_path}...")
-    try:
-        model = PeftModel.from_pretrained(model, adapter_path)
-        print("Adapters loaded successfully.")
-    except Exception as e:
-        print(f"Could not load adapters (Did you train the model yet?): {e}")
-        print("Running base model for comparison instead.")
+    # Load adapters if they exist
+    if os.path.exists(adapter_path):
+        print(f"Loading fine-tuned adapters from {adapter_path}...")
+        try:
+            model = PeftModel.from_pretrained(model, adapter_path)
+            print("Adapters loaded successfully.")
+        except Exception as e:
+            print(f"Could not load adapters: {e}")
+            print("Running base model for comparison instead.")
+    else:
+        print("No fine-tuned adapters found. Running base model.")
         
     # Format the prompt
     if input_text:
