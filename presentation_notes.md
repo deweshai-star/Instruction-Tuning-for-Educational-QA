@@ -1,69 +1,105 @@
-# Presenter Notes: Instruction Tuning for Educational QA
+# Presenter Notes: Instruction Tuning for Educational QA (8-Slide Version)
 
-This document provides page-by-page talking points (reading notes) for presenting your slides. Use these notes to guide your narrative, highlight key metrics, and explain technical details smoothly.
+This document provides page-by-page talking points (reading notes) for presenting the updated, improved slide deck.
 
 ---
 
-## Slide 1: Title Slide
+## Slide 1: Topic (Title Slide)
 **Slide Title**: Instruction Tuning for Educational QA
 **Focus**: Project Introduction, Context, & Main Goal
 
-### What to say:
-* *"Good morning/afternoon everyone. Today, I am presenting my project on **Instruction Tuning for Educational QA**."*
-* *"The goal of this project is to address a common bottleneck in deploying Generative AI in classroom settings: **compute constraints**."*
-* *"While state-of-the-art Large Language Models (LLMs) perform exceptionally well, they require massive, expensive GPU setups. In this project, I have fine-tuned a lightweight LLM—specifically **TinyLlama 1.1B**—using parameter-efficient techniques, allowing us to train and run a domain-specific educational assistant directly on standard consumer CPUs (like a student or teacher's laptop), with zero cloud cost."*
+### Talking Points:
+* *"Good morning/afternoon everyone. Today, I am presenting my project: **Instruction Tuning for Educational QA**."*
+* *"This project addresses a major constraint in modern generative AI deployment: the high cost and computational footprint of running Large Language Models (LLMs)."*
+* *"By applying Parameter-Efficient Fine-Tuning (PEFT) with LoRA, we train a lightweight model—**TinyLlama 1.1B**—to serve as a domain-specific educational question-answering assistant that can be trained and run completely offline, locally on standard consumer CPUs."*
 
 ---
 
-## Slide 2: End-to-End Development Pipeline
-**Slide Title**: End-to-End Development Pipeline
-**Focus**: Explaining the 4-Stage Workflow (Data -> Model -> CPU Training -> Streamlit App)
+## Slide 2: Project Objectives
+**Slide Title**: Project Objectives
+**Focus**: Key Motivations (CPU Training, Classroom Assistant, Privacy)
 
-### What to say:
-* *"Here, we see the end-to-end architecture of our project, broken down into four core stages."*
-* *"(Stage 1) **Data Engineering**: We begin with the gold-standard **Alpaca dataset** from Stanford. We filter a subset of 1,000 instruction-following samples, split them into 900 training and 100 evaluation pairs, and format them into structured prompts with `### Instruction`, `### Input` (if applicable), and `### Response` templates. We tokenize them using the LLaMA tokenizer with a max length of 512 to constrain memory."*
-* *"(Stage 2) **Model Adaptation**: We load the pre-trained **TinyLlama 1.1B** decoder-only model. To make fine-tuning feasible on a laptop, we use **LoRA (Low-Rank Adaptation)** to target only the Query (`q_proj`) and Value (`v_proj`) projection matrices in the self-attention layer."*
-* *"(Stage 3) **CPU-Optimized Training**: We configure PyTorch to train entirely on CPU in **float32 precision**. We optimize memory usage via **Gradient Checkpointing** and use a tiny batch size of 1 with gradient accumulation of 4 steps to simulate an effective batch size of 4."*
-* *"(Stage 4) **Local Deployment**: The output is a tiny set of adapter weights (~4.5MB). We wrapped this in a **Streamlit application (`app.py`)** that automatically loads the base model and overlays our adapters to answer student queries locally."*
-
----
-
-## Slide 3: Methodology (PEFT & LoRA)
-**Slide Title**: Methodology: Low-Rank Adaptation (LoRA)
-**Focus**: Why we use LoRA & The Math/Param Reduction
-
-### What to say:
-* *"Let's dive into the core methodology: **Why PEFT and LoRA?**"*
-* *"If we perform **Full Parameter Tuning** (on the left), we would have to update all **1.1 Billion parameters** of TinyLlama. This means updating massive matrices of gradients and optimizer states, which requires over **24 GB of GPU VRAM** to train in float32. This is completely impossible on commodity CPUs or standard laptops."*
-* *"To solve this, we use **Low-Rank Adaptation (LoRA)** (on the right). Instead of modifying the massive base weights, we freeze them. We then inject two small, low-rank matrices ($A$ and $B$) alongside the key projection layers."*
-* *"By choosing a rank ($r$) of 8 and alpha of 16, we compress the updates. Out of the 1.1 Billion parameters, **only 1,126,400 parameters** are trainable. That is just **0.1% of the model**."*
-* *"Because we are updating only 1.1M parameters, the training memory footprint drops by over 99%, and our final saved adapter file size is just **4.5 MB**."*
+### Talking Points:
+* *"Let's establish our core objectives."*
+* *"First, **CPU-Only Accessibility**. Standard LLM training requires expensive, enterprise-grade GPUs. We wanted to design a pipeline that trains and runs on a standard laptop with about 6 GB of RAM, democratizing access to customized model building."*
+* *"Second, **Classroom-Ready Assistance**. Standard models often generate overly academic or long-winded answers. Our objective is to fine-tune the model to give concise, structured, student-friendly responses."*
+* *"Third, **Privacy & Offline Support**. Many schools have limited internet or strict regulations regarding student data. A fully offline application ensures complete privacy with zero cloud bills."*
 
 ---
 
-## Slide 4: Training & System Configuration
-**Slide Title**: Training Configuration & Loss Performance
-**Focus**: Hardware constraints & Training loss progression
+## Slide 3: Dataset & Preparation
+**Slide Title**: Alpaca Instruction Dataset
+**Focus**: Stanford Alpaca, Subset Split, Prompt Template
 
-### What to say:
-* *"Next, let's look at the training execution details and performance metrics."*
-* *"To simulate a real-world local training setup, we forced the trainer onto **CPU only** (`use_cpu=True`) using standard **float32 precision**. The peak RAM consumption was around **6 GB**, meaning it fits comfortably within standard modern laptops."*
-* *"On the right, you can see the empirical training loss from our `trainer_state.json` logs over 25 steps:"*
-  * *"At step 5, the loss starts at **1.89**."*
-  * *"By step 10, it drops to **1.80**."*
-  * *"At step 20, it reaches its lowest point of **1.43** before stabilizing around **1.52** at step 25."*
-* *"This consistent downward trend confirms that the model is successfully learning to follow the instruction-response format, adapting its generation style to be more concise and educational."*
+### Talking Points:
+* *"Now, let's discuss our dataset and preprocessing pipeline."*
+* *"We utilize Stanford's **Alpaca dataset**, which is released under the Creative Commons license. While the full dataset contains over 52,000 samples, we extracted a curated subset of **1,000 instruction-following samples** to stay within laptop CPU resource constraints."*
+* *"We split this subset into **900 training samples** and **100 evaluation samples**."*
+* *"On the right, you can see how data points are engineered. Each sample is parsed into a structured prompt using tags: `### Instruction`, an optional `### Input` context box, and a `### Response`. We tokenize these prompts using the LLaMA tokenizer with a strict max length of 512 tokens to conserve memory."*
 
 ---
 
-## Slide 5: Results & Classroom Deployment
-**Slide Title**: Results & Classroom Deployment
-**Focus**: Streamlit app walkthrough & Sample output
+## Slide 4: Workflow & Architecture
+**Slide Title**: End-to-End Workflow & System Architecture
+**Focus**: 4-Stage Architecture Flow
 
-### What to say:
-* *"Finally, let's look at the results and how this works in practice."*
-* *"We built a frontend using **Streamlit** to make the model accessible to non-technical users. The app has a smart load-and-fallback logic: it automatically scans for fine-tuned LoRA adapters (looking for `final-adapter/` or `checkpoint-25/`). If found, it overlays them. If not, it falls back to the base model, guaranteeing the application always runs."*
-* *"Let's look at the output comparison on the right. When we prompt the model with: **'Explain the process of photosynthesis to a middle school student.'**, the fine-tuned model produces a highly structured response."*
-* *"Instead of giving a dry, overly academic explanation, it explains the Calvin cycle, the role of chlorophyll, and breaks it down into simple terms: 'Plants use solar energy, water, and air to make their own food and release clean air for us to breathe!'"*
-* *"This shows that even a lightweight model of 1.1 Billion parameters can become a highly effective, private, offline teaching assistant running entirely on local CPU hardware."*
-* *"Thank you, and I am happy to take any questions."*
+### Talking Points:
+* *"Here is the end-to-end system architecture of our pipeline, split into four linear steps."*
+* *"First, **Data Prep**: We download the subset, apply our instruction prompt wrapper, and pad/truncate the tokenized input."*
+* *"Second, **PEFT Configuration**: We load the base TinyLlama 1.1B model and freeze 99.9% of its parameters. We inject trainable Low-Rank matrices (with rank $r=8$, alpha $=16$) into the query and value attention projection modules."*
+* *"Third, **CPU-Only Training**: We pass our configured model and data to the PyTorch CPU trainer using float32 precision, gradient checkpointing, and an effective batch size of 4 via gradient accumulation."*
+* *"Fourth, **Local Web UI**: Once training concludes, we save the lightweight adapters (~4.5MB). We load them inside a local Streamlit browser interface (`app.py`), which reads user input and runs real-time inference on the CPU."*
+
+---
+
+## Slide 5: Challenges & Solutions
+**Slide Title**: Development Challenges & Key Solutions
+**Focus**: Overcoming Memory Limits & Path Resolution Crashes
+
+### Talking Points:
+* *"During development, we faced two critical challenges."*
+* *"The first challenge was **Severe CPU Memory Constraints**. Loading a 1.1B model and running backpropagation can easily crash a consumer laptop. We solved this by enabling gradient checkpointing to discard intermediate activations, using LoRA to reduce trainable parameters to just 0.1%, and using a small batch size of 1 with gradient accumulation."*
+* *"The second challenge was **Path Resolution and Fallback Crashes**. If the final adapter directory was missing, the Hugging Face library would try to find it online and crash. To fix this, we refactored the loading logic in `app.py` and `inference.py` to recursively search for local checkpoints (like `checkpoint-25/`) and, if no adapter is found, gracefully fall back to the base model instead of crashing."*
+
+---
+
+## Slide 6: Empirical Results & Conclusion
+**Slide Title**: Empirical Results & Conclusion
+**Focus**: Loss Convergence Table & Project Takeaways
+
+### Talking Points:
+* *"Next, let's look at our empirical results."*
+* *"On the left is the loss convergence table from our `trainer_state.json` logs. Over the 25 training steps:"*
+  * *"Step 5 started with a training loss of **1.8983**."*
+  * *"By Step 15, the loss dropped to **1.6545**."*
+  * *"And by Step 25, it successfully converged to **1.5245**."*
+* *"This steady decrease in loss proves that the model successfully learned the instruction-following patterns."*
+* *"In conclusion, this project proves that CPU-only instruction tuning is highly feasible, cost-effective, offline-ready, and lightweight—saving only 4.5 MB of adapter weights."*
+
+---
+
+## Slide 7: Future Directions
+**Slide Title**: Future Directions
+**Focus**: Dataset Scaling, Quantization, and RAG
+
+### Talking Points:
+* *"Looking ahead, there are three primary future directions we want to explore."*
+* *"First, **Scale Dataset & Context Length**: We plan to increase our training subset to over 10,000 samples and expand our context length to 2048 tokens to support analyzing complete textbook chapters."*
+* *"Second, **Quantized Larger Models**: We want to experiment with larger open-source models like Qwen-2.5-7B or Gemma-2-9B, using 4-bit or 8-bit CPU quantization libraries like llama.cpp to keep them running efficiently on consumer laptops."*
+* *"Third, **RAG Syllabus Integration**: We plan to implement Retrieval-Augmented Generation, allowing teachers to upload specific syllabus PDFs locally so the model can ground its answers in classroom material, eliminating hallucinations."*
+
+---
+
+## Slide 8: GitHub & Repository Details
+**Slide Title**: GitHub Repository & Setup Details
+**Focus**: Git URL, Setup guide, File structure
+
+### Talking Points:
+* *"Finally, all code and models are open-sourced."*
+* *"The repository is hosted at the URL shown on the left: `https://github.com/deweshai-star/Instruction-Tuning-for-Educational-QA`."*
+* *"To set up the project on any standard machine, users only need to run three simple steps:"*
+  1. *"Clone the repo."*
+  2. *"Create a virtual environment and run `pip install -r requirements.txt`."*
+  3. *"Start the web application with `streamlit run app.py`."*
+* *"On the right is our project's file structure. It contains self-contained modules: `data_prep.py` for preprocessing, `train.py` for model tuning, `inference.py` for command-line testing, and `app.py` for the Streamlit web GUI."*
+* *"Thank you very much. I am now open to any questions."*
